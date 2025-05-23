@@ -12,7 +12,7 @@ This Telegram bot lets you **hide text inside an image** (encoding) and **extrac
 - 🔐 Encode text into an image
 - 🔎 Decode hidden text from an image
 - 🤖 Works via Telegram bot interface
-- 🖼 Supports `.jpg`, `.jpeg`, and `.png` formats
+- 🖼 Supports `.jpeg` `.png` format
 
 
 ## In class StegoBot
