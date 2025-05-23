@@ -25,12 +25,12 @@ public class StegoBot extends TelegramLongPollingBot {
 
     @Override
     public String getBotUsername() {
-        return "BOT_NAME";
+        return "TYPE";
     }
 
     @Override
     public String getBotToken() {
-        return "TOKEN";
+        return "TYPE";
     }
 
     @Override
@@ -92,19 +92,24 @@ public class StegoBot extends TelegramLongPollingBot {
 
             } else if (msg.hasDocument()) {
                 Document doc = msg.getDocument();
-                if (!doc.getFileName().toLowerCase().endsWith(".png")) {
-                    sendMessage(chatId, "Пожалуйста, отправьте PNG-файл как документ.");
+                String fileName = doc.getFileName().toLowerCase();
+                if (!fileName.endsWith(".png") && !fileName.endsWith(".jpg") && !fileName.endsWith(".jpeg")) {
+                    sendMessage(chatId, "Пожалуйста, отправьте PNG или JPEG файл как документ.");
                     return;
                 }
-
                 GetFile getFile = new GetFile(doc.getFileId());
                 org.telegram.telegrambots.meta.api.objects.File file = execute(getFile);
                 String fileUrl = "https://api.telegram.org/file/bot" + getBotToken() + "/" + file.getFilePath();
 
-                File downloaded = new File("input_" + chatId + ".png");
-                try (InputStream in = new URL(fileUrl).openStream(); FileOutputStream out = new FileOutputStream(downloaded)) {
-                    in.transferTo(out);
+                BufferedImage image = ImageIO.read(new URL(fileUrl));
+                if (image == null) {
+                    sendMessage(chatId, "Не удалось прочитать изображение. Убедитесь, что это корректный PNG или JPEG файл.");
+                    return;
                 }
+
+// Сохраняем в PNG независимо от формата
+                File downloaded = new File("input_" + chatId + ".png");
+                ImageIO.write(image, "PNG", downloaded);
 
                 String mode = userModes.get(chatId);
                 if (mode == null) {
@@ -116,7 +121,7 @@ public class StegoBot extends TelegramLongPollingBot {
                     userImages.put(chatId, downloaded);
                     sendMessage(chatId, "Файл получен. Теперь отправьте текст для шифрования.");
                 } else if (mode.equals("decrypt")) {
-                    BufferedImage image = ImageIO.read(downloaded);
+                    image = ImageIO.read(downloaded);
                     String extracted = StegoUtil.extractText(image, 500); // 500 символов макс.
                     sendMessage(chatId, "🔍 Извлечённый текст:\n\n" + extracted);
                     userModes.remove(chatId);
