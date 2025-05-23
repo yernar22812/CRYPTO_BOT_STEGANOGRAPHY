@@ -54,19 +54,25 @@ public class StegoBot extends TelegramLongPollingBot {
                     return;
                 }
 
-                if (text.equals("🔐 Шифровать")) {
+                if (text.equals("🔙 Main Menu")) {
+                    userModes.remove(chatId);
+                    userImages.remove(chatId);
+                    showMainMenu(chatId);
+                    return;
+                }
+
+                if (text.equals("🔐 Encrypt")) {
                     userModes.put(chatId, "encrypt");
-                    sendMessage(chatId, "Отправьте одинчё PNG-файл как документ для шифрования.");
+                    showBackMenu(chatId, "Please send one PNG OR JPEG file as a document for encryption.");
                     return;
                 }
 
-                if (text.equals("🔓 Расшифровать")) {
+                if (text.equals("🔓 Decrypt")) {
                     userModes.put(chatId, "decrypt");
-                    sendMessage(chatId, "Отправьте один PNG-файл как документ для расшифровки.");
+                    showBackMenu(chatId, "Please send one PNG OR JPEG file as a document for decryption.");
                     return;
                 }
 
-                // пользователь отправил текст
                 if (userModes.getOrDefault(chatId, "").equals("encrypt") && userImages.containsKey(chatId)) {
                     String hiddenText = text;
                     File inputFile = userImages.get(chatId);
@@ -80,21 +86,22 @@ public class StegoBot extends TelegramLongPollingBot {
                     SendDocument doc = new SendDocument();
                     doc.setChatId(chatId);
                     doc.setDocument(new InputFile(outFile));
-                    doc.setCaption("✅ Готово! Вот PNG с текстом.");
+                    doc.setCaption("✅ Done! Here is a PNG with hidden text.");
                     execute(doc);
 
                     userImages.remove(chatId);
                     userModes.remove(chatId);
+                    showMainMenu(chatId);
                     return;
                 }
 
-                sendMessage(chatId, "❗ Пожалуйста, выберите режим: шифрование или расшифровка.");
+                sendMessage(chatId, "❗ Please select the mode: encryption or decryption.");
 
             } else if (msg.hasDocument()) {
                 Document doc = msg.getDocument();
                 String fileName = doc.getFileName().toLowerCase();
                 if (!fileName.endsWith(".png") && !fileName.endsWith(".jpg") && !fileName.endsWith(".jpeg")) {
-                    sendMessage(chatId, "Пожалуйста, отправьте PNG или JPEG файл как документ.");
+                    sendMessage(chatId, "Please send PNG or JPEG file as a document.");
                     return;
                 }
                 GetFile getFile = new GetFile(doc.getFileId());
@@ -103,47 +110,67 @@ public class StegoBot extends TelegramLongPollingBot {
 
                 BufferedImage image = ImageIO.read(new URL(fileUrl));
                 if (image == null) {
-                    sendMessage(chatId, "Не удалось прочитать изображение. Убедитесь, что это корректный PNG или JPEG файл.");
+                    sendMessage(chatId, "Could not read image. Make sure it is a valid PNG or JPEG file.");
                     return;
                 }
 
-// Сохраняем в PNG независимо от формата
                 File downloaded = new File("input_" + chatId + ".png");
                 ImageIO.write(image, "PNG", downloaded);
 
                 String mode = userModes.get(chatId);
                 if (mode == null) {
-                    sendMessage(chatId, "Сначала выберите режим: шифрование или расшифровка.");
+                    sendMessage(chatId, "First, select the mode: encryption or decryption.");
                     return;
                 }
 
                 if (mode.equals("encrypt")) {
                     userImages.put(chatId, downloaded);
-                    sendMessage(chatId, "Файл получен. Теперь отправьте текст для шифрования.");
+                    showBackMenu(chatId, "File received. Now send the text for encryption.");
                 } else if (mode.equals("decrypt")) {
                     image = ImageIO.read(downloaded);
-                    String extracted = StegoUtil.extractText(image, 500); // 500 символов макс.
-                    sendMessage(chatId, "🔍 Извлечённый текст:\n\n" + extracted);
+                    String extracted = StegoUtil.extractText(image, 500); // limit to 500 chars
+                    sendMessage(chatId, "🔍 Hidden text:\n\n" + extracted);
                     userModes.remove(chatId);
+                    showMainMenu(chatId);
                 }
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            sendMessage(chatId, "⚠️ Ошибка: " + e.getMessage());
+            sendMessage(chatId, "⚠️ ERROR: " + e.getMessage());
         }
     }
 
     private void showMainMenu(long chatId) throws TelegramApiException {
         SendMessage msg = new SendMessage();
         msg.setChatId(chatId);
-        msg.setText("Выберите режим:");
+        msg.setText("Select mode:");
 
         ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
         List<KeyboardRow> rows = new ArrayList<>();
+
         KeyboardRow row = new KeyboardRow();
-        row.add(new KeyboardButton("🔐 Шифровать"));
-        row.add(new KeyboardButton("🔓 Расшифровать"));
+        row.add(new KeyboardButton("🔐 Encrypt"));
+        row.add(new KeyboardButton("🔓 Decrypt"));
+        rows.add(row);
+
+        keyboard.setKeyboard(rows);
+        keyboard.setResizeKeyboard(true);
+        msg.setReplyMarkup(keyboard);
+
+        execute(msg);
+    }
+
+    private void showBackMenu(long chatId, String prompt) throws TelegramApiException {
+        SendMessage msg = new SendMessage();
+        msg.setChatId(chatId);
+        msg.setText(prompt);
+
+        ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup();
+        List<KeyboardRow> rows = new ArrayList<>();
+
+        KeyboardRow row = new KeyboardRow();
+        row.add(new KeyboardButton("🔙 Main Menu"));
         rows.add(row);
 
         keyboard.setKeyboard(rows);
