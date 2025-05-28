@@ -19,6 +19,13 @@ This Telegram bot lets you **hide text inside an image** (encoding) and **extrac
 This bot uses the **LSB steganography technique**, where each bit of the secret message is encoded into the least significant bits of image pixels. This method alters the image so slightly that the human eye cannot detect any difference.
 
 ---
+## In class StegoBot
+
+getBotUsername() -> type your @BotName
+
+getBotToken() -> type your BotToken
+
+---
 
 ## ⚙️ Features
 
@@ -65,11 +72,8 @@ This bot uses the **LSB steganography technique**, where each bit of the secret 
 
  ## 📁 Project Structure
 
-src/
-└── org.example/
-├── StegoBot.java ← Main Telegram bot class
-└── StegoUtil.java ← Steganography logic (encode/decode)
+```src/
+ └── org.example/
+ ├── StegoBot.java ← Main Telegram bot class
+ └── StegoUtil.java ← Steganography logic (encode/decode)
 
-## In class StegoBot
-getBotUsername() -> type your @BotName
-getBotToken() -> type your BotToken
